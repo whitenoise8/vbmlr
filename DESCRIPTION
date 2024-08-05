@@ -1,0 +1,12 @@
+Package: vbmlr
+Type: Package
+Title: Mean-field variational Bayes for multivariate linear regressions
+Version: 1.0
+Date: 2024-08-05
+Author: Nicolas Bianco
+Maintainer: Nicolas Bianco <nicolas.bianco@upf.edu>
+Description: Approximate Bayesian inference, levearging mean-field variational Bayes (MFVB), for multivariate predictive regressions with continuous shrinkage priors. See Bernardi, Bianchi, and Bianco (2024): Variational Inference for Large Bayesian Vector Autoregressions.
+Imports: 
+    Rcpp
+LinkingTo: Rcpp, RcppArmadillo, RcppEigen, RcppNumerical, BH, numDeriv, GIGrvg
+RoxygenNote: 7.2.1
