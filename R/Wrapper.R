@@ -3,8 +3,8 @@
 #' @param Y is a \code{d} times \code{T} matrix of observations
 #' @param X is a \code{p} times \code{T} matrix of exogenous covariates. If not specified (i.e, \code{X=NULL}) only an intercept is included
 #' @param AR if \code{TRUE} an autoregressive effect of order 1 is included (VAR(1))
-#' @param hyper is a list of algorithm hyperparameters depending on \code{prior}
-#' @param prior can be "normal" (gaussian prior), "lasso" (adaptive Bayesian lasso), "ng" (normal-gamma), "hs" (horseshoe)
+#' @param hyper is a list of algorithm hyperparameters depending on \code{prior}. (\code{a_nu}, \code{b_nu}) gamma parameters for \nu; \code{tau} prior variance for \beta; \code{ups} prior variance for \theta (normal prior); (\code{h1}, \code{h2}, \code{h3}) parameters of gamma and exponential distributions for Bayesian lasso and Normal-Gamma priors; (\code{a_om}, \code{b_om}) parameters of the prior for variance of the stochastic volatility process.
+#' @param prior can be "normal" (Gaussian prior), "lasso" (adaptive Bayesian lasso), "ng" (normal-gamma), "hs" (horseshoe)
 #' @param SV if \code{TRUE} stochastic volatility is added to the model
 #' @param maxIter maximum number of iterations in the CAVI algorithm
 #' @param Tol_ELBO tolerance for relative variation in ELBO for convergence 

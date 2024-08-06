@@ -391,8 +391,7 @@ Rcpp::List fVBmlrL(arma::mat D,
   double a_nu = hyper["a_nu"]; 
   double b_nu = hyper["b_nu"]; 
   
-  double e1 = hyper["e1"];    
-  double e2 = hyper["e2"];
+  double tau = hyper["tau"];
   
   double h1 = hyper["h1"];     
   double h2 = hyper["h2"]; 
@@ -411,12 +410,6 @@ Rcpp::List fVBmlrL(arma::mat D,
   arma::vec mu_q_nu = ones(d);
   arma::vec a_q_nu = (n/2+a_nu)*ones(d);
   arma::vec b_q_nu = ones(d);
-  
-  arma::mat Mu_q_tau = 0.1*trimatl(ones(d,d));
-  Mu_q_tau.diag() = zeros(d);
-  arma::mat Mu_q_recip_tau = Mu_q_tau;
-  
-  arma::mat Mu_q_lam = Mu_q_tau;
   
   arma::mat Mu_q_recip_ups = ones(d,d_);
   arma::mat Mu_q_ups = ones(d,d_);
@@ -444,8 +437,7 @@ Rcpp::List fVBmlrL(arma::mat D,
     /* Update iteration and initialize ELBO (with only constants) */
     itNum = itNum + 1;
     double lowerBound = d*(-0.5*n*log(2*datum::pi) +a_nu*log(b_nu) -lgamma(a_nu)) +
-      0.5*d*(d-1)*0.5 +0.5*d*d +
-      0.5*d*(d-1)*(e1*log(e2) - lgamma(e1)) +
+      0.5*d*(d-1)*0.5*(1-log(tau)) +0.5*d*d +
       d*d*(h1*log(h2) - lgamma(h1));
     
     arma::mat Yj = Y.row(0);
@@ -468,8 +460,7 @@ Rcpp::List fVBmlrL(arma::mat D,
       
       /* Update BETA_j */
       arma::mat Q = Y.rows(0,j-1) - Mu_q_phi.rows(0,j-1)*Z;
-      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 
-        diagmat(Mu_q_recip_tau.submat(j,0,j,j-1)));
+      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 1/tau*eye(j,j));
       Sigma_q_beta.slice(j).submat(0,0,j-1,j-1) = Sigma_beta_w;
       arma::vec mu_beta_w = Sigma_beta_w*(mu_q_nu(j)*(Q*(Y.row(j) - Mu_q_phi.row(j)*Z).t()));
       Mu_q_beta.submat(j,0,j,j-1) = mu_beta_w.t();
@@ -487,20 +478,7 @@ Rcpp::List fVBmlrL(arma::mat D,
       mu_q_nu(j) = a_q_nu(j)/b_q_nu(j);
       /* Update ELBO */
       lowerBound = lowerBound - (a_q_nu(j)*log(b_q_nu(j))-lgamma(a_q_nu(j)));
-      
-      /* Update TAU_j */
-      for (int k = 0; k < j; k++) { 
-        Mu_q_recip_tau(j,k) = sqrt(Mu_q_lam(j,k)/mu_q_betasq(k));
-        Mu_q_tau(j,k) = sqrt(mu_q_betasq(k)/Mu_q_lam(j,k))+1/Mu_q_lam(j,k);
-        /* Update ELBO */
-        lowerBound = lowerBound - (0.25*log(Mu_q_lam(j,k)/mu_q_betasq(k))-log(boost::math::cyl_bessel_k(0.5, sqrt(Mu_q_lam(j,k)*mu_q_betasq(k)))));
-        
-        /* Update LAM_j */
-        Mu_q_lam(j,k) = (1+e1)/(Mu_q_tau(j,k)/2+e2);
-        /* Update ELBO */
-        lowerBound = lowerBound - (1+e1)*log(Mu_q_tau(j,k)/2+e2) +lgamma(1+e1);
-        lowerBound = lowerBound + 0.5*Mu_q_tau(j,k)*Mu_q_lam(j,k);
-      }
+  
     }
     
     /* Get matrix C */
@@ -605,9 +583,7 @@ Rcpp::List fVBmlrNG(arma::mat D,
   double a_nu = hyper["a_nu"]; 
   double b_nu = hyper["b_nu"]; 
   
-  double e1 = hyper["e1"];    
-  double e2 = hyper["e2"]; 
-  double e3 = hyper["e3"];  
+  double tau = hyper["tau"];
   
   double h1 = hyper["h1"];     
   double h2 = hyper["h2"]; 
@@ -627,17 +603,6 @@ Rcpp::List fVBmlrNG(arma::mat D,
   arma::vec mu_q_nu = ones(d);
   arma::vec a_q_nu = (n/2+a_nu)*ones(d);
   arma::vec b_q_nu = ones(d);
-  
-  arma::mat Mu_q_tau = 0.1*trimatl(ones(d,d));
-  Mu_q_tau.diag() = zeros(d);
-  arma::mat Mu_q_recip_tau = 1/Mu_q_tau;
-  arma::mat Mu_q_logtau = log(Mu_q_tau);
-  
-  arma::mat Mu_q_lam = trimatl(ones(d,d));
-  Mu_q_lam.diag() = zeros(d);    
-  arma::mat Mu_q_loglam = Mu_q_lam;
-  
-  arma::vec mu_q_eta = 0.8*ones(d);
   
   arma::mat Mu_q_ups = 0.1*ones(d,d_);
   arma::mat Mu_q_recip_ups = Mu_q_ups;
@@ -669,8 +634,7 @@ Rcpp::List fVBmlrNG(arma::mat D,
     /* Update iteration and initialize ELBO (with only constants) */
     itNum = itNum + 1;
     double lowerBound = d*(-0.5*n*log(2*datum::pi) +a_nu*log(b_nu) -lgamma(a_nu)) +
-      0.5*d*(d-1)*0.5 +0.5*d*d +
-      0.5*d*(d-1)*(e1*log(e2) - lgamma(e1) + log(e3)) +
+      0.5*d*(d-1)*0.5*(1-log(tau)) +0.5*d*d +
       d*d*(h1*log(h2) - lgamma(h1) + log(h3));
     
     arma::mat Yj = Y.row(0);
@@ -693,8 +657,7 @@ Rcpp::List fVBmlrNG(arma::mat D,
       
       /* Update BETA_j */
       arma::mat Q = Y.rows(0,j-1) - Mu_q_phi.rows(0,j-1)*Z;
-      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 
-        diagmat(Mu_q_recip_tau.submat(j,0,j,j-1)));
+      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 1/tau*eye(j,j));
       Sigma_q_beta.slice(j).submat(0,0,j-1,j-1) = Sigma_beta_w;
       arma::vec mu_beta_w = Sigma_beta_w*(mu_q_nu(j)*(Q*(Y.row(j) - Mu_q_phi.row(j)*Z).t()));
       Mu_q_beta.submat(j,0,j,j-1) = mu_beta_w.t();
@@ -712,42 +675,6 @@ Rcpp::List fVBmlrNG(arma::mat D,
       mu_q_nu(j) = a_q_nu(j)/b_q_nu(j);
       /* Update ELBO */
       lowerBound = lowerBound - (a_q_nu(j)*log(b_q_nu(j))-lgamma(a_q_nu(j)));
-      
-      /* Update TAU_j */
-      double zeta_q_tau = mu_q_eta(j)-0.5;
-      arma::rowvec a_q_tau = mu_q_eta(j)*Mu_q_lam.row(j)+1e-4;
-      arma::vec b_q_tau = mu_q_betasq;
-      
-      for (int k = 0; k < j; k++) { 
-        Mu_q_tau(j,k) = sqrt(b_q_tau(k)/a_q_tau(k)) *
-          boost::math::cyl_bessel_k(zeta_q_tau+1.0, sqrt(a_q_tau(k)*b_q_tau(k))) /
-            boost::math::cyl_bessel_k(zeta_q_tau, sqrt(a_q_tau(k)*b_q_tau(k)));
-        Mu_q_recip_tau(j,k) = sqrt(a_q_tau(k)/b_q_tau(k)) * 
-          boost::math::cyl_bessel_k(zeta_q_tau+1.0, sqrt(a_q_tau(k)*b_q_tau(k))) /
-            boost::math::cyl_bessel_k(zeta_q_tau, sqrt(a_q_tau(k)*b_q_tau(k))) - 
-              2*zeta_q_tau/b_q_tau(k);
-        Mu_q_logtau(j,k) = log(sqrt(b_q_tau(k)/a_q_tau(k))) + grad_cpp(zeta_q_tau, sqrt(a_q_tau(k)*b_q_tau(k)));
-        
-        /* Update ELBO */
-        lowerBound = lowerBound - zeta_q_tau/2*log(a_q_tau(k)/b_q_tau(k)) + 
-        log(2*boost::math::cyl_bessel_k(zeta_q_tau, sqrt(a_q_tau(k)*b_q_tau(k))));
-        
-        /* Update LAM_j */
-        Mu_q_lam(j,k) = (mu_q_eta(j) + e1)/(0.5*mu_q_eta(j)*Mu_q_tau(j,k) + e2);
-        Mu_q_loglam(j,k) = -log(0.5*mu_q_eta(j)*Mu_q_tau(j,k) + e2) + boost::math::digamma(mu_q_eta(j) + e1);
-        /* Update ELBO */
-        lowerBound = lowerBound - (mu_q_eta(j) + e1)*log(0.5*mu_q_eta(j)*Mu_q_tau(j,k) + e2) +lgamma(mu_q_eta(j) + e1);
-      }
-      
-      /* Update ETA_j */
-      Rcpp::List out_eta = integrate_latent_factor(j,
-                                                   sum(Mu_q_tau(j,span(0,j-1))%Mu_q_lam(j,span(0,j-1))),
-                                                   sum(Mu_q_logtau(j,span(0,j-1))),
-                                                   sum(Mu_q_loglam(j,span(0,j-1))),e3);
-      mu_q_eta(j) = out_eta["value"];
-      double c_eta = out_eta["const_int"];
-      /* Update ELBO */
-      lowerBound = lowerBound +log(c_eta) +mu_q_eta(j)*sum(Mu_q_lam(j,span(0,j-1))%Mu_q_tau(j,span(0,j-1))-(Mu_q_loglam(j,span(0,j-1))+Mu_q_logtau(j,span(0,j-1))));
       
     }
     
@@ -881,6 +808,8 @@ Rcpp::List fVBmlrHS(arma::mat D,
   double a_nu = hyper["a_nu"]; 
   double b_nu = hyper["b_nu"]; 
   
+  double tau = hyper["tau"];
+  
   /* Initialize optimal quantities */
   arma::cube Sigma_q_phi = zeros(d_,d_,d);
   for (int i = 0; i < d; i++) {
@@ -895,13 +824,6 @@ Rcpp::List fVBmlrHS(arma::mat D,
   arma::vec mu_q_nu = ones(d);
   arma::vec a_q_nu = (n/2+a_nu)*ones(d);
   arma::vec b_q_nu = ones(d);
-  
-  arma::mat Mu_q_recip_tau = trimatl(ones(d,d));
-  Mu_q_recip_tau.diag() = zeros(d);
-  double mu_q_recip_gamma = 1;
-  arma::mat Mu_q_recip_lam = trimatl(ones(d,d));
-  Mu_q_recip_lam.diag() = zeros(d);
-  double mu_q_recip_eta = 1;
   
   arma::mat Mu_q_recip_ups = ones(d,d_);
   arma::vec mu_q_recip_delta = ones(d);
@@ -951,8 +873,7 @@ Rcpp::List fVBmlrHS(arma::mat D,
       
       /* Update BETA_j */
       arma::mat Q = Y.rows(0,j-1) - Mu_q_phi.rows(0,j-1)*Z;
-      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 
-        mu_q_recip_gamma*diagmat(Mu_q_recip_tau.submat(j,0,j,j-1)));
+      arma::mat Sigma_beta_w = inv_sympd(mu_q_nu(j)*(Q*Q.t() + K_phi) + 1/tau*eye(j,j));
       Sigma_q_beta.slice(j).submat(0,0,j-1,j-1) = Sigma_beta_w;
       arma::vec mu_beta_w = Sigma_beta_w*(mu_q_nu(j)*(Q*(Y.row(j) - Mu_q_phi.row(j)*Z).t()));
       Mu_q_beta.submat(j,0,j,j-1) = mu_beta_w.t();
@@ -971,30 +892,7 @@ Rcpp::List fVBmlrHS(arma::mat D,
       /* Update ELBO */
       lowerBound = lowerBound - (a_q_nu(j)*log(b_q_nu(j))-lgamma(a_q_nu(j)));
       
-      /* Update TAU_j */
-      for (int k = 0; k < j; k++) { 
-        Mu_q_recip_tau(j,k) = 1/(0.5*mu_q_betasq(k)*mu_q_recip_gamma+Mu_q_recip_lam(j,k));
-        
-        /* Update LAM_j */
-        Mu_q_recip_lam(j,k) = 1/(1+Mu_q_recip_tau(j,k));
-        
-        /* Update ELBO */
-        lowerBound = lowerBound + Mu_q_recip_tau(j,k)*Mu_q_recip_lam(j,k) -
-        (log(1+Mu_q_recip_tau(j,k)) +log(0.5*mu_q_betasq(k)*mu_q_recip_gamma+Mu_q_recip_lam(j,k)) +log(datum::pi));
-      }
-      
-      sum_gamma = sum_gamma + sum(mu_q_betasq.t()%Mu_q_recip_tau.submat(j,0,j,j-1));
-    }
-    
-    /* Update GAMMA */
-    mu_q_recip_gamma = 0.5*(0.5*d*(d-1)+1)/(0.5*sum_gamma+mu_q_recip_eta);
-    
-    /* Update ETA_j */
-    mu_q_recip_eta = 1/(1+mu_q_recip_gamma);
-    
-    /* Update ELBO */
-    lowerBound = lowerBound + mu_q_recip_gamma*(mu_q_recip_eta+sum_gamma) -
-    (0.5*(0.5*d*(d-1)+1)*log(0.5*sum_gamma+mu_q_recip_eta) +log(1+mu_q_recip_gamma) +log(datum::pi));
+     }
     
     /* Get matrix C */
     arma::mat C = zeros(d,d);
@@ -1738,7 +1636,7 @@ Rcpp::List fVBmlrSVNG(arma::mat D,
     }
     
     
-    /* Get matrix C and E(Om) and ...*/
+    /* Get matrix C and E(Om) */
     arma::cube C = zeros(d,d,n);
     for (int t = 0; t < n; t++) {
       for (int i0 = 0; i0 < d; i0++) C.slice(t) = C.slice(t) + mu_q_nu(i0,t)*Sigma_q_beta.slice(i0);
@@ -2008,7 +1906,7 @@ Rcpp::List fVBmlrSVHS(arma::mat D,
     }
     
     
-    /* Get matrix C and E(Om) and ...*/
+    /* Get matrix C and E(Om) */
     arma::cube C = zeros(d,d,n);
     for (int t = 0; t < n; t++) {
       for (int i0 = 0; i0 < d; i0++) C.slice(t) = C.slice(t) + mu_q_nu(i0,t)*Sigma_q_beta.slice(i0);

@@ -24,9 +24,9 @@ VBmlr(
 
 \item{AR}{if \code{TRUE} an autoregressive effect of order 1 is included (VAR(1))}
 
-\item{hyper}{is a list of algorithm hyperparameters depending on \code{prior}}
+\item{hyper}{is a list of algorithm hyperparameters depending on \code{prior}. (\code{a_nu}, \code{b_nu}) gamma parameters for \nu; \code{tau} prior variance for \beta; \code{ups} prior variance for \theta (normal prior); (\code{h1}, \code{h2}, \code{h3}) parameters of gamma and exponential distributions for Bayesian lasso and Normal-Gamma priors; (\code{a_om}, \code{b_om}) parameters of the prior for variance of the stochastic volatility process.}
 
-\item{prior}{can be "normal" (gaussian prior), "lasso" (adaptive Bayesian lasso), "ng" (normal-gamma), "hs" (horseshoe)}
+\item{prior}{can be "normal" (Gaussian prior), "lasso" (adaptive Bayesian lasso), "ng" (normal-gamma), "hs" (horseshoe)}
 
 \item{SV}{if \code{TRUE} stochastic volatility is added to the model}
 
